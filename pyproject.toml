@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "evaluate-ai"
+version = "0.1.0"
+description = ""
+authors = ["David Koleczek <45405824+DavidKoleczek@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+jsonschema = "==4.22.0"
+loguru = "==0.7.2"
+not_again_ai = { version = "==0.9.0", extras = ["llm"] }
+pydantic = "==2.7.1"
+pyyaml = "==6.0.1"
+rich = "==13.7.1"
+tinydb = "==4.8.0"
+
+[tool.poetry.scripts]
+run-evaluations = "scripts.run_evaluations:main"
+run-manual-evaluations = "scripts.run_manual_evaluations:main"
+view-results = "scripts.view_results:main"
+
+[tool.poetry.group.lint.dependencies]
+ruff = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["evaluate_ai"]
+
+[tool.ruff.lint]
+select = [
+    "F", # pyflakes
+    "E", # pycodestyle
+    "I", # isort
+    "N", # pep8-naming
+    "UP", # pyupgrade
+    "RUF", # ruff
+    "B", # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "ISC", # flake8-implicit-str-concat
+    "PTH", # flake8-use-pathlib
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+]
+ignore = ["E501"]
+unfixable = ["F401"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+split-on-trailing-comma = false
+known-first-party = ["evaluate_ai"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"

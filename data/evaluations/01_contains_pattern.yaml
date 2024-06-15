@@ -1,0 +1,30 @@
+- name: "Legless Elephants"
+  type: "contains_pattern"
+  parameters:
+    prompt: |-
+      How many legs do ten elephants have, if two of them are legless?
+    system_prompt: >-
+      - You are a helpful assistant who answers user's questions which have a numerical answer.\n
+      - Your answer in the end needs to be in JSON format, so that a grader can easily parse it.
+      You must use the following format: {"answer": 9} to indicate your response. Replace 9 with the answer you want to give.\n
+      - Before giving the answer, you think step by step before giving the answer.
+    pattern: >-
+      {"answer": 32}
+
+- name: "Python 3.11 Release Date"
+  type: "contains_pattern"
+  parameters:
+    prompt: |-
+      When did the first stable release of Python 3.11 come out?
+      Format your answer using this strftime format: %b %-d, %Y
+      For example, if the date is January 1st, 2000, then you should write: Jan 1, 2000
+    pattern: "Oct 24, 2022"
+
+- name: "Python 3.12 Release Date"
+  type: "contains_pattern"
+  parameters:
+    prompt: |-
+      When did the first stable release of Python 3.12 come out?
+      Format your answer using this strftime format: %b %-d, %Y
+      For example, if the date is January 1st, 2000, then you should write: Jan 1, 2000
+    pattern: "Oct 2, 2023"

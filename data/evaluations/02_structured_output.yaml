@@ -1,0 +1,64 @@
+- name: "Samba Classification"
+  type: "structured_output"
+  parameters:
+    prompt: |-
+      Classify the text into one of the provided catorgies and return the answer into the following JSON format: {"category": "CATEGORY"}
+      TEXT: Samba 3.8B, a simple Mamba+Sliding Window Attention architecture. And it has an infinite context length with linear complexity.
+      CATEGORIES: Unsupervised Learning, Statistics, SLM, LLM, Computer Vision, Reinforcement Learning
+    schema:
+      type: "object"
+      properties:
+        category:
+          type: "string"
+          const: "SLM"
+      required:
+        - category
+
+- name: "Restaurant Order (TypeChat Inspired)"
+  type: "structured_output"
+  parameters:
+    prompt: |-
+      You will be a given an ask from a user ordering a pizza. You are expected to return the order in a JSON format that the given schema (as a Python classes):
+      class Pizza(TypedDict, total=False):
+          itemType: Required[Literal["Pizza"]]
+          size: Annotated[Literal["small", "medium", "large", "extra large"], "default: large"]
+          addedToppings: Annotated[list[str], Doc("toppings requested (examples: pepperoni, arugula)")]
+          removedToppings: Annotated[list[str], Doc("toppings requested to be removed (examples: fresh garlic, anchovies)")]
+          quantity: Annotated[int, "default: 1"]
+          name: Annotated[
+              Literal["Cheese", "Pepperoni", "Combination", "Margherita"],
+              Doc("used if the requester references a pizza by name"),
+          ]
+      ASK: "I would like a large pepperoni pizza with added black olives and no mushrooms."
+    schema:
+      type: "object"
+      properties:
+        itemType:
+          type: "string"
+          const: "Pizza"
+        size:
+          type: "string"
+          const: "large"
+        addedToppings:
+          type: "array"
+          items:
+            type: "string"
+            const: "black olives"
+        removedToppings:
+          type: "array"
+          items:
+            type: "string"
+            const: "mushrooms"
+        quantity:
+          type: "integer"
+          const: 1
+        name:
+          type: "string"
+          const: "Pepperoni"
+      required:
+        - itemType
+        - size
+        - addedToppings
+        - removedToppings
+        - quantity
+        - name
