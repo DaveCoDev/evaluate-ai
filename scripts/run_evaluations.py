@@ -3,8 +3,8 @@
 import argparse
 from pathlib import Path
 
-from not_again_ai.llm.ollama.ollama_client import ollama_client
 from not_again_ai.llm.openai_api.openai_client import openai_client
+from not_again_ai.local_llm.ollama.ollama_client import ollama_client
 import yaml
 
 from evaluate_ai.evaluation import Provider

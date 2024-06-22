@@ -42,13 +42,17 @@
         addedToppings:
           type: "array"
           items:
-            type: "string"
-            const: "black olives"
+            oneOf:
+              - const: "black olives"
+              - const: "pepperoni"
+          minItems: 1
+          maxItems: 2
         removedToppings:
           type: "array"
           items:
-            type: "string"
             const: "mushrooms"
+          minItems: 1
+          maxItems: 1
         quantity:
           type: "integer"
           const: 1

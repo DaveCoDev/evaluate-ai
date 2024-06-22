@@ -41,10 +41,8 @@ class EvaluationContainsPattern(Evaluation):
         ]
 
     def get_result(self, model: str, llm_client: Any) -> None:
-        response = self.call_llm(model, messages=self.messages, llm_client=llm_client, max_tokens=1000, temperature=0.5)
+        self.call_llm(model, messages=self.messages, llm_client=llm_client, max_tokens=1000, temperature=0.5)
 
-        self.evaluation_data.metadata.model_output.append(response)
-        self.evaluation_data.model_name = model
         self.evaluation_data.metadata.model_parameters = {
             "max_tokens": 1000,
             "temperature": 0.5,

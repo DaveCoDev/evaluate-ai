@@ -11,7 +11,7 @@ python = "^3.11"
 
 jsonschema = "==4.22.0"
 loguru = "==0.7.2"
-not_again_ai = { version = "==0.9.0", extras = ["llm"] }
+not_again_ai = { version = "==0.10.0", extras = ["llm", "local_llm"] }
 pydantic = "==2.7.1"
 pyyaml = "==6.0.1"
 rich = "==13.7.1"

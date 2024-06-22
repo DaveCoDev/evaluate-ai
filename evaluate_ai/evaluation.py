@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from not_again_ai.llm.chat_completion import chat_completion
+from not_again_ai.local_llm.chat_completion import chat_completion
 from tinydb import TinyDB
 
 from evaluate_ai.evaluation_registry import EVALUATION_ENUM
@@ -22,6 +22,15 @@ class Metadata:
         default=None, metadata={"description": "The version of the evaluation in case changes are made."}
     )
     model_output: list[str] = field(metadata={"description": "The raw output(s) from the model."}, default_factory=list)
+    response_durations: list[float] = field(
+        default_factory=list, metadata={"description": "The time taken for each response from the model."}
+    )
+    prompt_tokens: list[int] = field(
+        default_factory=list, metadata={"description": "The tokens used in the prompt for the model."}
+    )
+    completion_tokens: list[int] = field(
+        default_factory=list, metadata={"description": "The tokens used in the completion for the model."}
+    )
     evaluation_parameters: dict[str, str] | None = field(
         default=None, metadata={"description": "The parameters used to setup the evaluation."}
     )
@@ -95,7 +104,7 @@ class Evaluation(ABC):
     @abstractmethod
     def get_result(self, model: str, llm_client: Any, *args, **kwargs) -> None:
         """Defines getting a result for evaluation using a model (can be used in any way and multiple times).
-        The result must be stored in self.evaluation_data.metadata.model_output.
+        Any time the LLM is called, it automatically is stored in self.evaluation_data.metadata.model_output in order of the LLM calls
 
         Args:
             model (str): The model name to use.
@@ -111,6 +120,8 @@ class Evaluation(ABC):
         pass
 
     def execute(self, model: str, llm_client: Any, provider: Provider, *args, **kwargs) -> None:
+        self.evaluation_data.model_name = model
+
         self.get_result(model, llm_client, *args, **kwargs)
         self.evaluate(*args, **kwargs)
         self.evaluation_data.metadata.model_provider = provider.value
@@ -139,5 +150,11 @@ class Evaluation(ABC):
         """Helper function to call the LLM using not-again-ai's chat_completion function.
         Assumes the messages are in the correct format and the result is successful.
         """
-        response = chat_completion(messages=messages, model=model, client=llm_client, **kwargs)["message"]
-        return response
+        response = chat_completion(messages=messages, model=model, client=llm_client, **kwargs)
+
+        self.evaluation_data.metadata.model_output.append(response["message"])
+        self.evaluation_data.metadata.prompt_tokens.append(response["prompt_tokens"])
+        self.evaluation_data.metadata.completion_tokens.append(response["completion_tokens"])
+        self.evaluation_data.metadata.response_durations.append(response["response_duration"])
+
+        return response["message"]
