@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "evaluate-ai"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["David Koleczek <45405824+DavidKoleczek@users.noreply.github.com>"]
 license = "MIT"
@@ -9,13 +9,13 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 
-jsonschema = "==4.22.0"
-loguru = "==0.7.2"
-not_again_ai = { version = "==0.10.0", extras = ["llm", "local_llm"] }
-pydantic = "==2.7.1"
-pyyaml = "==6.0.1"
-rich = "==13.7.1"
-tinydb = "==4.8.0"
+jsonschema = "^4.23"
+loguru = "^0.7"
+not_again_ai = { version = "==0.10.3", extras = ["llm", "local_llm"] }
+pydantic = "^2.8"
+pyyaml = "^6.0"
+rich = "^13.7"
+tinydb = "^4.8"
 
 [tool.poetry.scripts]
 run-evaluations = "scripts.run_evaluations:main"
@@ -24,6 +24,9 @@ view-results = "scripts.view_results:main"
 
 [tool.poetry.group.lint.dependencies]
 ruff = "*"
+
+[tool.poetry.group.typos.dependencies]
+typos = "*"
 
 [build-system]
 requires = ["poetry-core"]

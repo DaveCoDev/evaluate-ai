@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -9,11 +8,7 @@ from not_again_ai.local_llm.chat_completion import chat_completion
 from tinydb import TinyDB
 
 from evaluate_ai.evaluation_registry import EVALUATION_ENUM
-
-
-class Provider(Enum):
-    OPENAI = "openai_api"
-    OLLAMA = "ollama"
+from evaluate_ai.run_config import Provider, RunConfig
 
 
 @dataclass
@@ -89,7 +84,9 @@ class EvaluationData:
 
 
 class Evaluation(ABC):
-    def __init__(self):
+    def __init__(self, config: RunConfig):
+        self.config = config
+
         self._evaluation_data = EvaluationData()
 
     @property
@@ -146,15 +143,23 @@ class Evaluation(ABC):
         self.evaluate(*args, **kwargs)
         self.evaluation_data.save_to_db()
 
-    def call_llm(self, model: str, llm_client: Any, messages: list[dict[str, str]], **kwargs: Any) -> str:
+    def call_llm(
+        self,
+        model: str,
+        llm_client: Any,
+        messages: list[dict[str, str]],
+        log_to_evaluation_data: bool,
+        **kwargs: Any,
+    ) -> str:
         """Helper function to call the LLM using not-again-ai's chat_completion function.
         Assumes the messages are in the correct format and the result is successful.
         """
         response = chat_completion(messages=messages, model=model, client=llm_client, **kwargs)
 
-        self.evaluation_data.metadata.model_output.append(response["message"])
-        self.evaluation_data.metadata.prompt_tokens.append(response["prompt_tokens"])
-        self.evaluation_data.metadata.completion_tokens.append(response["completion_tokens"])
-        self.evaluation_data.metadata.response_durations.append(response["response_duration"])
+        if log_to_evaluation_data:
+            self.evaluation_data.metadata.model_output.append(response["message"])
+            self.evaluation_data.metadata.prompt_tokens.append(response["prompt_tokens"])
+            self.evaluation_data.metadata.completion_tokens.append(response["completion_tokens"])
+            self.evaluation_data.metadata.response_durations.append(response["response_duration"])
 
         return response["message"]

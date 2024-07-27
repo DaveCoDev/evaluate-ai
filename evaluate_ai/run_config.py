@@ -1,10 +1,28 @@
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
+from not_again_ai.llm.openai_api.openai_client import openai_client
+from not_again_ai.local_llm.ollama.ollama_client import ollama_client
 from pydantic import BaseModel, ValidationError
 import yaml
 
-from evaluate_ai.evaluation import Provider
+
+class Provider(Enum):
+    OPENAI = "openai_api"
+    OLLAMA = "ollama"
+
+
+def get_llm_client(provider_name: str) -> Any:
+    if provider_name == Provider.OLLAMA:
+        llm_client = ollama_client()
+    elif provider_name == Provider.OPENAI:
+        llm_client = openai_client()
+    else:
+        raise ValueError(f"Provider {provider_name} is not supported.")
+
+    return llm_client
 
 
 class RunConfig(BaseModel):
@@ -15,10 +33,9 @@ class RunConfig(BaseModel):
     # Must be a model supported by not_again_ai.llm.chat_completion
     models: dict[Provider, list[str]]
 
-    # Which external model responses are coming from for manual evaluation
-    external_models: list[str]
-    # Which evaluations do we want to run on the external model
-    external_evaluations: list[str]
+    # For any evaluations that require an LLM, this determines which model that is
+    evaluation_model: str
+    evaluation_provider: Provider
 
     @classmethod
     def load(cls, path: Path) -> "RunConfig":
@@ -38,10 +55,8 @@ class RunConfig(BaseModel):
                 data = yaml.safe_load(file)
                 config_data = {}
                 config_data["models"] = data.get("models", {})
-                external_evals_data = data.get("evaluate_external", None)
-                if external_evals_data:
-                    config_data["external_models"] = external_evals_data.get("models", [])
-                    config_data["external_evaluations"] = external_evals_data.get("evaluation_names", [])
+                config_data["evaluation_model"] = data.get("evaluation_model", None)
+                config_data["evaluation_provider"] = data.get("evaluation_provider", None)
             return cls(**config_data)
         except FileNotFoundError:
             logger.error(f"The file {path} does not exist.")

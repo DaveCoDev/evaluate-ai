@@ -50,6 +50,17 @@ def main() -> None:
                     console.print(Padding(f"[bright_black]{model_output}[/bright_black]", (0, 0, 0, padding_amount)))
         console.print()
 
+    # Aggregate the results by model
+    model_results = defaultdict(list)
+    for _, results in latest_results.items():
+        for model, result in results.items():
+            model_results[model].append(result["score"])
+    console.print("[bold]Model Averages[/bold]")
+    for model, scores in model_results.items():
+        average_score = sum(scores) / len(scores)
+        number_of_evals = len(scores)
+        console.print(f"[italic]{model}[/italic] ({number_of_evals} Evals): [blue]{average_score:.2f}[/blue]")
+
 
 if __name__ == "__main__":
     main()

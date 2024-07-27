@@ -6,12 +6,13 @@ from jsonschema.exceptions import SchemaError, ValidationError
 from loguru import logger
 
 from evaluate_ai.evaluation import Evaluation
+from evaluate_ai.run_config import RunConfig
 
 
 class EvaluationStructuredOutput(Evaluation):
     """Given a prompt that asks for output in a structured JSON format, validate the model output against a JSON Schema."""
 
-    def __init__(self, name: str, prompt: str, schema: dict) -> None:
+    def __init__(self, config: RunConfig, name: str, prompt: str, schema: dict) -> None:
         """Initializes the evaluation with the name of the evaluation and the prompt and pattern to check for.
 
         Schema is a JSON Schema, see https://json-schema.org/understanding-json-schema/reference/enum#light-scheme-icon.
@@ -22,7 +23,7 @@ class EvaluationStructuredOutput(Evaluation):
             prompt (str): The prompt to be provided as the user message.
             schema (dict): The schema to validate the model's output against.
         """
-        super().__init__()
+        super().__init__(config=config)
 
         self.prompt = prompt
         self.schema = schema
@@ -43,7 +44,13 @@ class EvaluationStructuredOutput(Evaluation):
 
     def get_result(self, model: str, llm_client: Any) -> None:
         self.call_llm(
-            model, messages=self.messages, llm_client=llm_client, max_tokens=1000, temperature=0.5, json_mode=True
+            model,
+            messages=self.messages,
+            llm_client=llm_client,
+            log_to_evaluation_data=True,
+            max_tokens=1000,
+            temperature=0.5,
+            json_mode=True,
         )
 
         self.evaluation_data.metadata.model_parameters = {

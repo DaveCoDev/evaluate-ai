@@ -2,11 +2,9 @@
 and prompts the user to select a document ID to delete.
 """
 
-from pathlib import Path
-
 from tinydb import TinyDB
 
-TINYDB_PATH = Path(__file__).parent.parent.parent / "data" / "tinydb.json"
+from evaluate_ai.tinydb_helpers.db_path import TINYDB_PATH
 
 if __name__ == "__main__":
     db = TinyDB(TINYDB_PATH)

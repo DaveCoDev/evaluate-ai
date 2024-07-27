@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from evaluate_ai.evaluation import Evaluation
 from evaluate_ai.evaluation_registry import EVALUATION_REGISTRY
+from evaluate_ai.run_config import RunConfig
 
 
 class EvaluationInstance(BaseModel):
@@ -18,6 +19,8 @@ class EvaluationInstance(BaseModel):
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    config: RunConfig
 
     name: str
     type: str
@@ -40,10 +43,10 @@ class EvaluationInstance(BaseModel):
         class_ = getattr(module, class_name)
 
         self.parameters["name"] = self.name
-        self.evaluation_class_instance = class_(**self.parameters)
+        self.evaluation_class_instance = class_(config=self.config, **self.parameters)
 
     @classmethod
-    def initialize_evaluation_instances(cls, evaluations: list[dict]) -> list["EvaluationInstance"]:
+    def initialize_evaluation_instances(cls, evaluations: list[dict], config: RunConfig) -> list["EvaluationInstance"]:
         """Load, validate, and handle errors for the evaluations from a YAML file.
 
         Args:
@@ -58,7 +61,7 @@ class EvaluationInstance(BaseModel):
         evaluation_instances: list[EvaluationInstance] = []
         try:
             for evaluation in evaluations:
-                evaluation_instance = cls(**evaluation)
+                evaluation_instance = cls(config=config, **evaluation)
                 evaluation_instances.append(evaluation_instance)
         except Exception as e:
             logger.error(f"An unexpected error occurred while loading the evaluation: {evaluation}")
@@ -66,7 +69,7 @@ class EvaluationInstance(BaseModel):
         return evaluation_instances
 
     @classmethod
-    def check_evaluation_instances(cls, evaluations: list[dict]) -> None:
+    def check_evaluation_instances(cls, evaluations: list[dict], config: RunConfig) -> None:
         """Load, validate, and handle errors for the evaluations from a YAML file.
 
         Args:
@@ -77,7 +80,7 @@ class EvaluationInstance(BaseModel):
         """
         try:
             for evaluation in evaluations:
-                cls(**evaluation)
+                cls(config=config, **evaluation)
         except Exception as e:
             logger.error(f"An unexpected error occurred while loading the evaluation: {evaluation}")
             logger.error(f"Error: {e}")

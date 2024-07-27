@@ -86,7 +86,7 @@ To use other models or otherwise modify how language model responses are generat
     - The class must implement the following:
         - Set `self.evaluation_data.name` to be some friendly identifier for the evaluation. Usually this is provided from the config (see below step on create a config file).
         - Set `self.evaluation_data.type` to be the name of the evaluation in the evaluation registry. See the below step for more information on the registry.
-        - Implement the `get_result` method. This method should set `self.evaluation_data.metadata.model_output` to the output(s) of the model which can then be used in the `evaluate` method.
+        - Implement the `get_result` method. This method should set `self.evaluation_data.metadata.model_output` to the output(s) of the model which can then be used in the `evaluate` method. Note that `call_llm` automatically sets the model output.
         - Implement the `evaluate` method. This must set `self.evaluation_data.score` which is the score from 0-100 of the evaluation.
         - (Optional) Implement the `task_as_string` method. This will be used to display the task in a friendly way which is useful for manual evaluation.
 2. **Add the evaluation type to `EVALUATION_REGISTRY` at [evaluate_ai/evaluation_registry.py](./evaluate_ai/evaluation_registry.py)**
@@ -96,12 +96,20 @@ To use other models or otherwise modify how language model responses are generat
     - The config file must have the following fields:
         - `name`: A friendly name for the evaluation.
         - `type`: The key that was set in the aforementioned evaluation registry.
-      - Any other fields under `parameters` will be passed as kwargs to the evaluation class.
+      - Other fields must be under `parameters` and will be passed as kwargs to the evaluation class. Everything else will be ignored.
 
 
 ## Roadmap
 - [ ] **Additional Evaluations**
     - [ ] (Python) Coding Problems. Input a natural language description of a problem, optional context, and test cases. 
     The model should output Python which will be executed and tested against the test cases.
-    - [ ] LLM-Based Evaluation. Input a task description and criteria that must be met. Then ask the LLM if the generated answer meets all the criteria.
 - [ ] **Better Visualization and Reporting of Results**
+
+
+## Misc
+### Typos
+Check for typos using [typos](https://github.com/crate-ci/typos)
+
+```bash
+typos -c ./.github/_typos.toml
+```

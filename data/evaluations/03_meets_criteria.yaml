@@ -1,0 +1,45 @@
+- name: "Hamburger"
+  type: "meets_criteria"
+  parameters:
+    prompt: |-
+      Other than Kraft singles, are the best things to add to a burger for the 4th.
+      Write the answer in a numbered list
+    semantic_criteria:
+      - criteria: "Lists pickles in the top 3 additions"
+        importance: 3
+      - criteria: "Lists tomatoes in the top 3 additions"
+        importance: 3
+      - criteria: "Does NOT include avocado in the top 5 additions"
+        importance: 3
+      - criteria: "Does NOT include mushrooms in the top 5 additions"
+        importance: 2
+
+- name: "Packers Stock"
+  type: "meets_criteria"
+  parameters:
+    prompt: |-
+      How can I buy Packers stock?
+    semantic_criteria:
+      - criteria: "States prominently that Packers stock is not like a traditional investment that is bought and sold on markets"
+        importance: 50
+      - criteria: "States that Packers stock is only available for purchase during specific times"
+        importance: 20
+      - criteria: "States that Packers stock is more like a donation or fundraiser for the team rather than a traditional investment"
+        importance: 30
+
+- name: "Libre Software"
+  type: "meets_criteria"
+  parameters:
+    prompt: |-
+      Name software (as many as you can) that starts with "Libre" that has a Wikipedia page about it.
+    semantic_criteria:
+      - criteria: "Includes LibreOffice"
+        importance: 50
+      - criteria: "Includes LibreWolf"
+        importance: 30
+      - criteria: "Does not list out each product in the LibreOffice suit. It should only list the suite itself and not make a list of the products in the suite."
+        importance: 20
+      - criteria: "Includes LibreCAD"
+        importance: 20
+      - criteria: "Includes LibreCMC"
+        importance: 20
