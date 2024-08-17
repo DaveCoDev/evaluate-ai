@@ -1,64 +1,49 @@
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from not_again_ai.local_llm.chat_completion import chat_completion
+from pydantic import BaseModel, Field
 from tinydb import TinyDB
 
-from evaluate_ai.evaluation_registry import EVALUATION_ENUM
 from evaluate_ai.run_config import Provider, RunConfig
 
 
-@dataclass
-class Metadata:
-    evaluation_version: int | None = field(
-        default=None, metadata={"description": "The version of the evaluation in case changes are made."}
+class Metadata(BaseModel):
+    evaluation_version: int | None = Field(None, description="The version of the evaluation in case changes are made.")
+    output: list[Any] = Field(default_factory=list, description="The raw output(s) from the model.")
+    response_durations: list[float] = Field(
+        default_factory=list, description="The time taken for each response from the model."
     )
-    model_output: list[str] = field(metadata={"description": "The raw output(s) from the model."}, default_factory=list)
-    response_durations: list[float] = field(
-        default_factory=list, metadata={"description": "The time taken for each response from the model."}
+    prompt_tokens: list[int] = Field(default_factory=list, description="The tokens used in the prompt for the model.")
+    completion_tokens: list[int] = Field(
+        default_factory=list, description="The tokens used in the completion for the model."
     )
-    prompt_tokens: list[int] = field(
-        default_factory=list, metadata={"description": "The tokens used in the prompt for the model."}
+    evaluation_parameters: dict[str, Any] | None = Field(
+        None, description="The parameters used to setup the evaluation."
     )
-    completion_tokens: list[int] = field(
-        default_factory=list, metadata={"description": "The tokens used in the completion for the model."}
+    evaluation_output: str | None = Field(None, description="Any extra output from the evaluation")
+    output_parameters: dict[str, Any] | None = Field(
+        None, description="The parameters used for generating model outputs."
     )
-    evaluation_parameters: dict[str, str] | None = field(
-        default=None, metadata={"description": "The parameters used to setup the evaluation."}
-    )
-    evaluation_output: str | None = field(
-        default=None, metadata={"description": "Any extra output from the evaluation"}
-    )
-    model_parameters: dict[str, str] | None = field(
-        default=None, metadata={"description": "The parameters used for the model."}
-    )
-    non_api_model: bool = field(
-        default=False, metadata={"description": "Whether the model is from a non-API source like Microsoft Copilot."}
-    )
-    model_provider: Provider = field(
-        default=None, metadata={"description": "The provider of the model, such as OpenAI or Ollama."}
-    )
+    non_api_model: bool = Field(False, description="Whether the model is from a non-API source like Microsoft Copilot.")
+    provider: Provider | None = Field(None, description="The provider of the model, such as OpenAI or Ollama.")
 
 
-@dataclass
-class EvaluationData:
-    name: str = field(
-        default=None,
+class EvaluationData(BaseModel):
+    name: str | None = Field(
+        None,
         metadata={"description": "The name of the evaluation used to identify the evaluation, which can be anything."},
     )
     # This should be the key added to the EVALUATION_REGISTRY
-    type: EVALUATION_ENUM | None = field(
-        default=None, metadata={"description": "One of the supported evaluation types"}
-    )
-    score: float | None = field(default=None, metadata={"description": "The score out of 100 for the evaluation."})
-    model_name: str | None = field(default=None, metadata={"description": "Name of the model"})
-    execution_date: datetime | None = field(
+    type: str | None = Field(None, metadata={"description": "One of the supported evaluation types"})
+    score: float | None = Field(None, metadata={"description": "The score out of 100 for the evaluation."})
+    name_model: str | None = Field(None, metadata={"description": "Name of the model"})
+    execution_date: datetime | None = Field(
         default_factory=datetime.now, metadata={"description": "The datetime the evaluation was executed."}
     )
-    metadata: Metadata = field(default_factory=Metadata, metadata={"description": "Any additional and optional info."})
+    metadata: Metadata = Field(default_factory=Metadata, metadata={"description": "Any additional and optional info."})
 
     def save_to_db(self) -> None:
         """Insert the current state of EvaluationData into a TinyDB database."""
@@ -69,17 +54,9 @@ class EvaluationData:
         db.insert(evaluation_data_dict)
 
     @staticmethod
-    def to_dict(instance) -> dict:
+    def to_dict(instance: BaseModel) -> dict:
         """Convert an instance of EvaluationData to a dictionary, handling special types."""
-        # Convert the dataclass to a dictionary
-        instance_dict = asdict(instance)
-        # Handle the Category Enum and datetime specially
-        instance_dict["type"] = instance.type if isinstance(instance.type, str) else instance.type.name
-        instance_dict["execution_date"] = instance.execution_date.isoformat()
-        if instance.metadata:
-            instance_dict["metadata"] = asdict(instance.metadata)
-            if instance_dict["metadata"].get("model_parameters"):
-                instance_dict["metadata"]["model_parameters"] = dict(instance_dict["metadata"]["model_parameters"])
+        instance_dict = instance.model_dump(mode="json")
         return instance_dict
 
 
@@ -101,7 +78,7 @@ class Evaluation(ABC):
     @abstractmethod
     def get_result(self, model: str, llm_client: Any, *args, **kwargs) -> None:
         """Defines getting a result for evaluation using a model (can be used in any way and multiple times).
-        Any time the LLM is called, it automatically is stored in self.evaluation_data.metadata.model_output in order of the LLM calls
+        Any time the LLM is called, it automatically is stored in self.evaluation_data.metadata.output in order of the LLM calls
 
         Args:
             model (str): The model name to use.
@@ -117,15 +94,15 @@ class Evaluation(ABC):
         pass
 
     def execute(self, model: str, llm_client: Any, provider: Provider, *args, **kwargs) -> None:
-        self.evaluation_data.model_name = model
+        self.evaluation_data.name_model = model
 
         self.get_result(model, llm_client, *args, **kwargs)
         self.evaluate(*args, **kwargs)
-        self.evaluation_data.metadata.model_provider = provider.value
+        self.evaluation_data.metadata.provider = provider
         self.evaluation_data.save_to_db()
 
     def evaluate_external(self, source: str, *args, **kwargs) -> None:
-        self.evaluation_data.model_name = source
+        self.evaluation_data.name_model = source
 
         manual_file_path = Path(__file__).parent.parent / "external_evaluation.txt"
         if not manual_file_path.exists():
@@ -137,7 +114,7 @@ class Evaluation(ABC):
 
         with Path.open(manual_file_path, "r") as file:
             text = file.read()
-        self.evaluation_data.metadata.model_output.append(text)
+        self.evaluation_data.metadata.output.append(text)
         self.evaluation_data.metadata.non_api_model = True
 
         self.evaluate(*args, **kwargs)
@@ -157,7 +134,7 @@ class Evaluation(ABC):
         response = chat_completion(messages=messages, model=model, client=llm_client, **kwargs)
 
         if log_to_evaluation_data:
-            self.evaluation_data.metadata.model_output.append(response["message"])
+            self.evaluation_data.metadata.output.append(response["message"])
             self.evaluation_data.metadata.prompt_tokens.append(response["prompt_tokens"])
             self.evaluation_data.metadata.completion_tokens.append(response["completion_tokens"])
             self.evaluation_data.metadata.response_durations.append(response["response_duration"])

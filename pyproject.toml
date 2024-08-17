@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "evaluate-ai"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["David Koleczek <45405824+DavidKoleczek@users.noreply.github.com>"]
 license = "MIT"
@@ -11,7 +11,7 @@ python = "^3.11"
 
 jsonschema = "^4.23"
 loguru = "^0.7"
-not_again_ai = { version = "==0.10.3", extras = ["llm", "local_llm"] }
+not_again_ai = { extras = ["llm", "local_llm"], version="==0.12.0" }
 pydantic = "^2.8"
 pyyaml = "^6.0"
 rich = "^13.7"
@@ -19,7 +19,6 @@ tinydb = "^4.8"
 
 [tool.poetry.scripts]
 run-evaluations = "scripts.run_evaluations:main"
-run-manual-evaluations = "scripts.run_manual_evaluations:main"
 view-results = "scripts.view_results:main"
 
 [tool.poetry.group.lint.dependencies]

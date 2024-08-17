@@ -11,6 +11,6 @@ def get_executed_evaluations() -> list[tuple[str, str, str]]:
 
     # Iterate over each document and add the evaluation name, model, provider pair to the set
     for doc in documents:
-        unique_evals.add((doc["name"], doc["model_name"], doc["metadata"]["model_provider"]))
+        unique_evals.add((doc["name"], doc["name_model"], doc["metadata"]["provider"]))
 
     return list(unique_evals)

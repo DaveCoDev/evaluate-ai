@@ -58,14 +58,14 @@ class EvaluationContainsPattern(Evaluation):
             temperature=0.5,
         )
 
-        self.evaluation_data.metadata.model_parameters = {
+        self.evaluation_data.metadata.output_parameters = {
             "max_tokens": 1000,
             "temperature": 0.5,
         }
 
     def evaluate(self) -> None:
         pattern = re.compile(self.pattern)
-        success = bool(pattern.search(self.evaluation_data.metadata.model_output[0]))
+        success = bool(pattern.search(self.evaluation_data.metadata.output[0]))
         score = 100 if success else 0
         self.evaluation_data.score = score
 

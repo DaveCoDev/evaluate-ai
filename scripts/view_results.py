@@ -25,7 +25,7 @@ def main() -> None:
     latest_results = defaultdict(dict)
     for evaluation_data in documents:
         evaluation_key = f"{evaluation_data['name']} ({evaluation_data['type']})"
-        model = evaluation_data.get("model_name")
+        model = evaluation_data.get("name_model")
 
         if evaluation_key in latest_results and model in latest_results[evaluation_key]:
             latest_result = latest_results.get(evaluation_key).get(model)
@@ -41,7 +41,7 @@ def main() -> None:
         for model, result in results.items():
             console.print(f"[italic]{model}[/italic]: [blue]{result['score']}[/blue]")
             if args.verbose:
-                model_outputs = result.get("metadata", {}).get("model_output", "")
+                model_outputs = result.get("metadata", {}).get("output", "")
                 for idx, model_output in enumerate(model_outputs):
                     padding_amount = 0
                     if len(model_outputs) > 1:

@@ -53,14 +53,14 @@ class EvaluationStructuredOutput(Evaluation):
             json_mode=True,
         )
 
-        self.evaluation_data.metadata.model_parameters = {
+        self.evaluation_data.metadata.output_parameters = {
             "max_tokens": 1000,
             "temperature": 0.5,
         }
 
     def evaluate(self) -> None:
         try:
-            validate(instance=self.evaluation_data.metadata.model_output[0], schema=self.schema)
+            validate(instance=self.evaluation_data.metadata.output[0], schema=self.schema)
         except ValidationError:
             self.evaluation_data.score = 0
             return

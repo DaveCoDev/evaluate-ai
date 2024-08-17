@@ -47,13 +47,13 @@ RESPONSE:
 There have been many incredible football games over the years, each memorable for different reasons. Here are a few that often come up in discussions:
 
 1. **Super Bowl LI (2017)**: New England Patriots vs. Atlanta Falcons
-   - The Patriots made a historic comeback from a 28-3 deficit to win 34-28 in overtime, the first Super Bowl to go into overtime⁵.
+   - The Patriots made a historic comeback from a 28-3 deficit to win 34-28 in overtime, the first Super Bowl to go into overtime.
 
 2. **The "Tuck Rule" Game (2002)**: New England Patriots vs. Oakland Raiders
-   - Known for the controversial "tuck rule" call, this game saw the Patriots win 16-13 in overtime, propelling them to their first Super Bowl victory⁵.
+   - Known for the controversial "tuck rule" call, this game saw the Patriots win 16-13 in overtime, propelling them to their first Super Bowl victory.
 
 3. **Super Bowl XXIII (1989)**: San Francisco 49ers vs. Cincinnati Bengals
-   - Joe Montana led a 92-yard drive in the final minutes to secure a 20-16 victory for the 49ers⁵.
+   - Joe Montana led a 92-yard drive in the final minutes to secure a 20-16 victory for the 49ers.
 
 CRITERIA:
 The first two games should not both include the New England Patriots.
@@ -106,13 +106,13 @@ Now convert that response into JSON following the format: { "answer" : true } or
             max_tokens=1000,
             temperature=0.5,
         )
-        self.evaluation_data.metadata.model_parameters = {
+        self.evaluation_data.metadata.output_parameters = {
             "max_tokens": 1000,
             "temperature": 0.5,
         }
 
     def evaluate(self) -> None:
-        response = self.evaluation_data.metadata.model_output[0]
+        response = self.evaluation_data.metadata.output[0]
         model = self.config.evaluation_model
         llm_client = get_llm_client(self.config.evaluation_provider)
 

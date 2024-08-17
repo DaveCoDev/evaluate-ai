@@ -1,7 +1,9 @@
 models:
+  gh_models:
+    - gpt-4o-mini
   ollama:
-    - phi3:3.8b-mini-4k-instruct-q8_0
     - llama3.1:8b-instruct-q4_0
+    - phi3:3.8b-mini-4k-instruct-q8_0
     - llama3.1:70b-instruct-q4_0
   openai_api:
     - gpt-4o-mini-2024-07-18

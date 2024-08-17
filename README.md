@@ -38,13 +38,6 @@ By default, this will execute all the evaluations as defined in [data/evaluation
 run-evaluations
 ```
 
-#### Run Manual Evaluations
-Execute manual evaluations and automatically save the results to a tinydb database. It will only execute evaluations set in the global [config.yaml](./data/evaluations/config.yaml) file.
-
-```bash
-run-manual-evaluations
-```
-
 #### View Results
 Prints the latest (by timestamp of last execution time) results for each evaluation and each model pair to console.
 
@@ -86,7 +79,7 @@ To use other models or otherwise modify how language model responses are generat
     - The class must implement the following:
         - Set `self.evaluation_data.name` to be some friendly identifier for the evaluation. Usually this is provided from the config (see below step on create a config file).
         - Set `self.evaluation_data.type` to be the name of the evaluation in the evaluation registry. See the below step for more information on the registry.
-        - Implement the `get_result` method. This method should set `self.evaluation_data.metadata.model_output` to the output(s) of the model which can then be used in the `evaluate` method. Note that `call_llm` automatically sets the model output.
+        - Implement the `get_result` method. This method should set `self.evaluation_data.metadata.output` to the output(s) of the model which can then be used in the `evaluate` method. Note that `call_llm` automatically sets the model output.
         - Implement the `evaluate` method. This must set `self.evaluation_data.score` which is the score from 0-100 of the evaluation.
         - (Optional) Implement the `task_as_string` method. This will be used to display the task in a friendly way which is useful for manual evaluation.
 2. **Add the evaluation type to `EVALUATION_REGISTRY` at [evaluate_ai/evaluation_registry.py](./evaluate_ai/evaluation_registry.py)**
