@@ -4,73 +4,116 @@ from typing import Any
 from jsonschema import validate
 from jsonschema.exceptions import SchemaError, ValidationError
 from loguru import logger
+from not_again_ai.local_llm.chat_completion import chat_completion
+from not_again_ai.local_llm.prompts import chat_prompt
+from pydantic import Field
+from rich.progress import Progress
 
-from evaluate_ai.evaluation import Evaluation
-from evaluate_ai.run_config import RunConfig
+from evaluate_ai.evaluation import Evaluation, EvaluationConfig, EvaluationInstance, EvaluationInstanceOutput
+from evaluate_ai.utils import Provider, get_llm_client
+
+STRUCTURED_OUTPUT_MESSAGES = [
+    {
+        "role": "system",
+        "content": """You are a helpful assistant that is answering tasks in a structured JSON format.""",
+    },
+    {
+        "role": "user",
+        "content": """{{prompt}}""",
+    },
+]
+
+
+class EvaluationInstanceStructuredOutput(EvaluationInstance):
+    prompt: str = Field(
+        description="The prompt to present to the model.",
+    )
+    json_schema: dict[str, Any] = Field(description="The schema to validate the model's output against.")
+
+
+class EvaluationConfigStructuredOutput(EvaluationConfig):
+    evaluation_instances: list[EvaluationInstanceStructuredOutput] = Field(
+        description="The list of evaluation instances that will be executed.",
+    )
+
+
+class EvaluationInstanceOutputStructuredOutput(EvaluationInstanceOutput):
+    evaluation_instance: EvaluationInstanceStructuredOutput
+    message: str
+    error_message: str | None
+    prompt_tokens_total: int
+    completion_tokens_total: int
+    duration_sec_total: float
 
 
 class EvaluationStructuredOutput(Evaluation):
-    """Given a prompt that asks for output in a structured JSON format, validate the model output against a JSON Schema."""
+    def __init__(self, config: EvaluationConfigStructuredOutput) -> None:
+        self.config: EvaluationConfigStructuredOutput = EvaluationConfigStructuredOutput(**config)
 
-    def __init__(self, config: RunConfig, name: str, prompt: str, schema: dict) -> None:
-        """Initializes the evaluation with the name of the evaluation and the prompt and pattern to check for.
+        # Get a tuple of (provider, model) for each model in the run config
+        self.models: list[tuple[Provider, str]] = []
+        for provider, models in self.config.run_config.models.items():
+            for model in models:
+                self.models.append((provider, model))
 
-        Schema is a JSON Schema, see https://json-schema.org/understanding-json-schema/reference/enum#light-scheme-icon.
-        The model must output a JSON object that is valid against the schema for a score of 100, otherwise 0.
+    def num_instances(self, keys_to_skip: set) -> int:
+        num = 0
+        for provider, model in self.models:
+            for e_instance in self.config.evaluation_instances:
+                key = (EvaluationInstanceOutputStructuredOutput.__name__, model, provider.value, e_instance.name)
+                if key not in keys_to_skip:
+                    num += 1
+        return num
 
-        Args:
-            name (str): The friendly name of the evaluation.
-            prompt (str): The prompt to be provided as the user message.
-            schema (dict): The schema to validate the model's output against.
-        """
-        super().__init__(config=config)
+    def execute(self, progress: Progress, keys_to_skip: set) -> None:
+        for provider, model in self.models:
+            for e_instance in self.config.evaluation_instances:
+                key = (EvaluationInstanceOutputStructuredOutput.__name__, model, provider.value, e_instance.name)
+                if key not in keys_to_skip:
+                    response = self._get_response(
+                        prompt=e_instance.prompt,
+                        model=model,
+                        llm_client=get_llm_client(provider),
+                    )
+                    message = response["message"]
+                    score, error = self._evaluate(message, e_instance.json_schema)
+                    instance_output = EvaluationInstanceOutputStructuredOutput(
+                        module_name=self.config.run_config.module_name,
+                        class_name=EvaluationInstanceOutputStructuredOutput.__name__,
+                        name_model=model,
+                        provider=provider,
+                        evaluation_instance=e_instance,
+                        message=str(message),
+                        error_message=error,
+                        score=score,
+                        prompt_tokens_total=response["prompt_tokens"],
+                        completion_tokens_total=response["completion_tokens"],
+                        duration_sec_total=response["response_duration"],
+                    )
+                    instance_output.save_to_db()
+                    progress.advance(0)
 
-        self.prompt = prompt
-        self.schema = schema
-
-        self.evaluation_data.name = name
-        self.evaluation_data.type = "structured_output"
-
-        self.messages = [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that is answering tasks in a structured JSON format.",
+    def _get_response(self, prompt: str, model: str, llm_client: Any) -> str:
+        messages = chat_prompt(
+            messages_unformatted=STRUCTURED_OUTPUT_MESSAGES,
+            variables={
+                "prompt": prompt,
             },
-            {
-                "role": "user",
-                "content": self.prompt,
-            },
-        ]
-
-    def get_result(self, model: str, llm_client: Any) -> None:
-        self.call_llm(
-            model,
-            messages=self.messages,
-            llm_client=llm_client,
-            log_to_evaluation_data=True,
-            max_tokens=1000,
-            temperature=0.5,
-            json_mode=True,
         )
+        response = chat_completion(
+            messages, model=model, client=llm_client, temperature=0.5, max_tokens=2000, json_mode=True
+        )
+        return response
 
-        self.evaluation_data.metadata.output_parameters = {
-            "max_tokens": 1000,
-            "temperature": 0.5,
-        }
-
-    def evaluate(self) -> None:
+    def _evaluate(self, response: dict, json_schema: dict) -> tuple[float, str | None]:
         try:
-            validate(instance=self.evaluation_data.metadata.output[0], schema=self.schema)
-        except ValidationError:
-            self.evaluation_data.score = 0
-            return
+            validate(instance=response, schema=json_schema)
+            return (100, None)
+        except ValidationError as e:
+            return (0, str(e))
 
-        self.evaluation_data.score = 100
-
-    def task_as_string(self) -> str:
-        return super().task_as_string()
-
-    def test_schema(self, sample_model_response: str | dict) -> None:
+    @staticmethod
+    def test_schema(sample_model_response: str | dict, json_schema: dict) -> None:
         """A helper function to test if the jsonschema is validating responses as expected.
 
         Args:
@@ -85,7 +128,7 @@ class EvaluationStructuredOutput(Evaluation):
                 return
 
         try:
-            validate(instance=sample_model_response, schema=self.schema)
+            validate(instance=sample_model_response, schema=json_schema)
             logger.info("Schema validation succeeded.")
         except ValidationError as e:
             logger.info(f"Schema validation failed: {e}")
@@ -98,9 +141,9 @@ class EvaluationStructuredOutput(Evaluation):
 
 if __name__ == "__main__":
     # Sample test script to check if your schemas validate model responses as expected
-    model_response = """{"itemType": "Pizza", "size": "large", "addedToppings": ["black olives"], "removedToppings": ["bananas"], "quantity": 1, "name": "Pepperoni"}"""
+    model_response = """{"itemType": "Pizza", "size": "large", "addedToppings": ["black olives"], "removedToppings": ["mushrooms"], "quantity": 1, "name": "Pepperoni"}"""
 
-    schema = {
+    json_schema = {
         "type": "object",
         "properties": {
             "itemType": {"type": "string", "const": "Pizza"},
@@ -118,5 +161,4 @@ if __name__ == "__main__":
         "required": ["itemType", "size", "addedToppings", "removedToppings", "quantity", "name"],
     }
 
-    evaluation = EvaluationStructuredOutput(name="Not Applicable", prompt="Not Applicable", schema=schema)
-    evaluation.test_schema(model_response)
+    EvaluationStructuredOutput.test_schema(model_response, json_schema)

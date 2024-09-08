@@ -2,14 +2,13 @@
 
 import argparse
 from collections import defaultdict
-from datetime import datetime
-from pathlib import Path
 
 from rich.console import Console
 from rich.padding import Padding
 from tinydb import TinyDB
 
-TINYDB_PATH = Path(__file__).parent.parent / "data" / "tinydb.json"
+from evaluate_ai.evaluation import EvaluationBaseOutput
+from evaluate_ai.tinydb_helpers.db_path import TINYDB_PATH
 
 
 def main() -> None:
@@ -24,37 +23,37 @@ def main() -> None:
 
     latest_results = defaultdict(dict)
     for evaluation_data in documents:
-        evaluation_key = f"{evaluation_data['name']} ({evaluation_data['type']})"
-        model = evaluation_data.get("name_model")
+        evaluation_output_class = EvaluationBaseOutput.load_class(
+            evaluation_data["module_name"], evaluation_data["class_name"], evaluation_data
+        )
+        evaluation_key = f"{evaluation_output_class.module_name} ({evaluation_output_class.evaluation_instance.name})"
+        model = evaluation_output_class.name_model
+        provider = evaluation_output_class.provider
+        model_key = f"{provider.value}.{model}"
 
-        if evaluation_key in latest_results and model in latest_results[evaluation_key]:
-            latest_result = latest_results.get(evaluation_key).get(model)
-            latest_result_time = datetime.fromisoformat(latest_result.get("execution_date"))
-            evaluation_data_time = datetime.fromisoformat(evaluation_data.get("execution_date"))
+        if evaluation_key in latest_results and model_key in latest_results[evaluation_key]:
+            latest_result: EvaluationBaseOutput = latest_results.get(evaluation_key).get(model_key)
+            latest_result_time = latest_result.execution_date
+            evaluation_data_time = evaluation_output_class.execution_date
             if evaluation_data_time > latest_result_time:
-                latest_results[evaluation_key][model] = evaluation_data
+                latest_results[evaluation_key][model_key] = evaluation_output_class
         else:
-            latest_results[evaluation_key][model] = evaluation_data
+            latest_results[evaluation_key][model_key] = evaluation_output_class
 
     for evaluation_name, results in latest_results.items():
         console.print(f"[bold]{evaluation_name}[/bold]")
-        for model, result in results.items():
-            console.print(f"[italic]{model}[/italic]: [blue]{result['score']}[/blue]")
-            if args.verbose:
-                model_outputs = result.get("metadata", {}).get("output", "")
-                for idx, model_output in enumerate(model_outputs):
-                    padding_amount = 0
-                    if len(model_outputs) > 1:
-                        console.print(f"[bright_black][italic]Output {idx + 1}:[/bright_black][/italic]")
-                        padding_amount = 2
-                    console.print(Padding(f"[bright_black]{model_output}[/bright_black]", (0, 0, 0, padding_amount)))
+        for model_key, result in results.items():
+            console.print(f"[italic]{model_key}[/italic]: [blue]{result.score}[/blue]")
+            if args.verbose and hasattr(result, "message"):
+                model_output = result.message
+                console.print(Padding(f"[bright_black]{model_output}[/bright_black]", (0, 0, 0, 2)))
         console.print()
 
     # Aggregate the results by model
     model_results = defaultdict(list)
     for _, results in latest_results.items():
-        for model, result in results.items():
-            model_results[model].append(result["score"])
+        for model_key, result in results.items():
+            model_results[model_key].append(result.score)
     console.print("[bold]Model Averages[/bold]")
     for model, scores in model_results.items():
         average_score = sum(scores) / len(scores)

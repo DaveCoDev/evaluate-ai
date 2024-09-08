@@ -1,6 +1,16 @@
-- name: "Hamburger"
-  type: "meets_criteria"
-  parameters:
+run_config:
+  module_name: meets_criteria
+  class_name: EvaluationMeetsCriteria
+  models:
+    gh_models:
+      - gpt-4o-mini
+    azure_openai:
+      - gpt-4o-2024-05-13
+  evaluation_provider: "ollama"
+  evaluation_model: "llama3.1:70b-instruct-q4_0"
+
+evaluation_instances:
+  - name: "Hamburger"
     prompt: |-
       Other than Kraft singles, are the best things to add to a burger for the 4th.
       Write the answer in a numbered list
@@ -14,9 +24,7 @@
       - criteria: "Does NOT include mushrooms in the top 5 additions"
         importance: 2
 
-- name: "Packers Stock"
-  type: "meets_criteria"
-  parameters:
+  - name: "Packers Stock"
     prompt: |-
       How can I buy Packers stock?
     semantic_criteria:
@@ -27,9 +35,7 @@
       - criteria: "States that Packers stock is more like a donation or fundraiser for the team rather than a traditional investment"
         importance: 30
 
-- name: "Libre Software"
-  type: "meets_criteria"
-  parameters:
+  - name: "Libre Software"
     prompt: |-
       Name software (as many as you can) that starts with "Libre" that has a Wikipedia page about it.
     semantic_criteria:

@@ -11,10 +11,12 @@ python = "^3.11"
 
 jsonschema = "^4.23"
 loguru = "^0.7"
-not_again_ai = { extras = ["llm", "local_llm"], version="==0.12.0" }
-pydantic = "^2.8"
+not_again_ai = { extras = ["llm", "local_llm"], version="==0.12.1" }
+pendulum = "^3.0"
+pydantic = "^2.9"
+pydantic_extra_types = "^2.9"
 pyyaml = "^6.0"
-rich = "^13.7"
+rich = "^13.8"
 tinydb = "^4.8"
 
 [tool.poetry.scripts]

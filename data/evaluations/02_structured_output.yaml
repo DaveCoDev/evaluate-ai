@@ -1,11 +1,19 @@
-- name: "Samba Classification"
-  type: "structured_output"
-  parameters:
+run_config:
+  module_name: structured_output
+  class_name: EvaluationStructuredOutput
+  models:
+    gh_models:
+      - gpt-4o-mini
+    azure_openai:
+      - gpt-4o-2024-05-13
+
+evaluation_instances:
+  - name: "Samba Classification"
     prompt: |-
       Classify the text into one of the provided catorgies and return the answer into the following JSON format: {"category": "CATEGORY"}
       TEXT: Samba 3.8B, a simple Mamba+Sliding Window Attention architecture. And it has an infinite context length with linear complexity.
       CATEGORIES: Unsupervised Learning, Statistics, SLM, LLM, Computer Vision, Reinforcement Learning
-    schema:
+    json_schema:
       type: "object"
       properties:
         category:
@@ -14,9 +22,7 @@
       required:
         - category
 
-- name: "Restaurant Order (TypeChat Inspired)"
-  type: "structured_output"
-  parameters:
+  - name: "Restaurant Order (TypeChat Inspired)"
     prompt: |-
       You will be a given an ask from a user ordering a pizza. You are expected to return the order in a JSON format that the given schema (as a Python classes):
       class Pizza(TypedDict, total=False):
@@ -30,7 +36,7 @@
               Doc("used if the requester references a pizza by name"),
           ]
       ASK: "I would like a large pepperoni pizza with added black olives and no mushrooms."
-    schema:
+    json_schema:
       type: "object"
       properties:
         itemType:

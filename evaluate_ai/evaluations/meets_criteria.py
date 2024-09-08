@@ -1,44 +1,34 @@
 from typing import Any
 
-from loguru import logger
+from not_again_ai.local_llm.chat_completion import chat_completion
 from not_again_ai.local_llm.prompts import chat_prompt
+from pydantic import BaseModel, Field
+from rich.progress import Progress
 
-from evaluate_ai.evaluation import Evaluation
-from evaluate_ai.run_config import RunConfig, get_llm_client
+from evaluate_ai.evaluation import (
+    Evaluation,
+    EvaluationConfig,
+    EvaluationInstance,
+    EvaluationInstanceOutput,
+    EvaluationRunConfig,
+)
+from evaluate_ai.utils import Provider, get_llm_client
 
+RESPONSE_MESSAGES = [
+    {
+        "role": "system",
+        "content": """You are a helpful assistant that is answering requests for a user.""",
+    },
+    {
+        "role": "user",
+        "content": """{{prompt}}""",
+    },
+]
 
-class EvaluationMeetsCriteria(Evaluation):
-    """Assesses how well the answer meets defined criteria."""
-
-    def __init__(self, config: RunConfig, name: str, prompt: str, semantic_criteria: list) -> None:
-        """Initializes the evaluation with the friendly name of the evaluation and the prompt and pattern to check for.
-
-        Args:
-            name (str): The friendly name of the evaluation.
-        """
-        super().__init__(config=config)
-
-        self.prompt = prompt
-        self.semantic_criteria = semantic_criteria
-
-        self.evaluation_data.name = name
-        self.evaluation_data.type = "meets_criteria"
-
-        self.response_messages = [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that is answering requests for a user.",
-            },
-            {
-                "role": "user",
-                "content": self.prompt,
-            },
-        ]
-
-        self.evaluation_messages = [
-            {
-                "role": "system",
-                "content": """You are evaluating how well a response meets a given criteria. Each can either be met or not met. You must make a choice.
+EVALUATION_MESSAGES = [
+    {
+        "role": "system",
+        "content": """You are evaluating how well a response meets a given criteria. Each can either be met or not met. You must make a choice.
 First, for the criteria, first think step by step about if the response meets the criteria.
 Then as your final answer write down true or false. true means the criteria is met and false means it is not met. \
 Below is an example of the process.
@@ -60,23 +50,23 @@ The first two games should not both include the New England Patriots.
 
 SAMPLE ANSWER:
 The first game mentioned, Super Bowl LI, involves the Patriots. The second game, the Tuck Rule Game, also involves the Patriots. Therefore the criteria is NOT met. Therefore the final output is: false""",
-            },
-            {
-                "role": "user",
-                "content": """RESPONSE:
+    },
+    {
+        "role": "user",
+        "content": """RESPONSE:
 {{response}}
 
 CRITERIA:
 {{criteria}}
 
 Now first think step by step if the response meets the criteria and then write either true or false as your final answer.""",
-            },
-        ]
+    },
+]
 
-        self.convert_response = [
-            {
-                "role": "system",
-                "content": """You are a helpful, thoughtful, and meticulous assistant. You will be given text which you must parse out a true or false answer from. 
+CONVERT_RESPONSE_MESSAGES = [
+    {
+        "role": "system",
+        "content": """You are a helpful, thoughtful, and meticulous assistant. You will be given text which you must parse out a true or false answer from. 
 Your final output should be a very simple JSON object: { "answer" : true } or { "answer" : false }.
 
 Below is the an example of the process.
@@ -86,84 +76,146 @@ The first game mentioned, Super Bowl LI, involves the Patriots. The second game,
 
 SAMPLE JSON:
 { "answer" : false }""",
-            },
-            {
-                "role": "user",
-                "content": """RESPONSE:
+    },
+    {
+        "role": "user",
+        "content": """RESPONSE:
 {{response}}
 
 Now convert that response into JSON following the format: { "answer" : true } or { "answer" : false }""",
-            },
-        ]
+    },
+]
 
-    def get_result(self, model: str, llm_client: Any) -> None:
-        # First get a response for the prompt
-        self.call_llm(
-            model,
-            messages=self.response_messages,
-            llm_client=llm_client,
-            log_to_evaluation_data=True,
-            max_tokens=1000,
-            temperature=0.5,
+
+class EvaluationRunConfigMeetsCriteria(EvaluationRunConfig):
+    evaluation_provider: Provider
+    evaluation_model: str
+
+
+class SemanticCriteria(BaseModel):
+    criteria: str
+    importance: int
+
+
+class EvaluationInstanceMeetsCriteria(EvaluationInstance):
+    prompt: str = Field(
+        description="The prompt to present to the model.",
+    )
+    semantic_criteria: list[SemanticCriteria] = Field(
+        description="The semantic criteria to evaluate the model's output against and how much to factor it into the score."
+    )
+
+
+class EvaluationConfigMeetsCriteria(EvaluationConfig):
+    run_config: EvaluationRunConfigMeetsCriteria
+    evaluation_instances: list[EvaluationInstanceMeetsCriteria] = Field(
+        description="The list of evaluation instances that will be executed.",
+    )
+
+
+class EvaluationInstanceOutputMeetsCriteria(EvaluationInstanceOutput):
+    evaluation_instance: EvaluationInstanceMeetsCriteria
+    message: str
+    prompt_tokens_total: int
+    completion_tokens_total: int
+    duration_sec_total: float
+
+
+class EvaluationMeetsCriteria(Evaluation):
+    def __init__(self, config: EvaluationConfigMeetsCriteria) -> None:
+        self.config: EvaluationConfigMeetsCriteria = EvaluationConfigMeetsCriteria(**config)
+
+        # Get a tuple of (provider, model) for each model in the run config
+        self.models: list[tuple[Provider, str]] = []
+        for provider, models in self.config.run_config.models.items():
+            for model in models:
+                self.models.append((provider, model))
+
+    def num_instances(self, keys_to_skip: set) -> int:
+        num = 0
+        for provider, model in self.models:
+            for e_instance in self.config.evaluation_instances:
+                key = (EvaluationInstanceOutputMeetsCriteria.__name__, model, provider.value, e_instance.name)
+                if key not in keys_to_skip:
+                    num += 1
+        return num
+
+    def execute(self, progress: Progress, keys_to_skip: set) -> None:
+        for provider, model in self.models:
+            for e_instance in self.config.evaluation_instances:
+                key = (EvaluationInstanceOutputMeetsCriteria.__name__, model, provider.value, e_instance.name)
+                if key not in keys_to_skip:
+                    response = self._get_response(
+                        prompt=e_instance.prompt, model=model, llm_client=get_llm_client(provider)
+                    )
+                    message = response["message"]
+                    score = self._evaluate(message, e_instance)
+                    instance_output = EvaluationInstanceOutputMeetsCriteria(
+                        module_name=self.config.run_config.module_name,
+                        class_name=EvaluationInstanceOutputMeetsCriteria.__name__,
+                        name_model=model,
+                        provider=provider,
+                        evaluation_instance=e_instance,
+                        message=message,
+                        score=score,
+                        prompt_tokens_total=response["prompt_tokens"],
+                        completion_tokens_total=response["completion_tokens"],
+                        duration_sec_total=response["response_duration"],
+                    )
+                    instance_output.save_to_db()
+                    progress.advance(0)
+
+    def _get_response(self, prompt: str, model: str, llm_client: Any) -> str:
+        messages = chat_prompt(
+            messages_unformatted=RESPONSE_MESSAGES,
+            variables={"prompt": prompt},
         )
-        self.evaluation_data.metadata.output_parameters = {
-            "max_tokens": 1000,
-            "temperature": 0.5,
-        }
+        response = chat_completion(messages, model=model, client=llm_client, temperature=0.5, max_tokens=1500)
+        return response
 
-    def evaluate(self) -> None:
-        response = self.evaluation_data.metadata.output[0]
-        model = self.config.evaluation_model
-        llm_client = get_llm_client(self.config.evaluation_provider)
-
+    def _evaluate(self, response_message: str, e_instance: EvaluationInstanceMeetsCriteria) -> float:
         score = 0
         # Normalize the importance values from parameters to sum to 100
-        total_importance = sum([c["importance"] for c in self.semantic_criteria])
-        for crit in self.semantic_criteria:
-            crit["importance"] = (crit["importance"] / total_importance) * 100
-
+        total_importance = sum([c.importance for c in e_instance.semantic_criteria])
+        for crit in e_instance.semantic_criteria:
+            importance = crit.importance
+            importance = (importance / total_importance) * 100
             reasoning_messages = chat_prompt(
-                messages_unformatted=self.evaluation_messages,
+                messages_unformatted=EVALUATION_MESSAGES,
                 variables={
-                    "response": response,
-                    "criteria": crit["criteria"],
+                    "response": response_message,
+                    "criteria": crit.criteria,
                 },
             )
-            reasoning = self.call_llm(
-                model,
+            reasoning = chat_completion(
                 messages=reasoning_messages,
-                llm_client=llm_client,
-                log_to_evaluation_data=False,
+                model=self.config.run_config.evaluation_model,
+                client=get_llm_client(self.config.run_config.evaluation_provider),
                 max_tokens=1000,
                 temperature=0.3,
             )
 
             # Convert the reasoning to JSON
             convert_messages = chat_prompt(
-                messages_unformatted=self.convert_response,
+                messages_unformatted=CONVERT_RESPONSE_MESSAGES,
                 variables={
-                    "response": reasoning,
+                    "response": reasoning["message"],
                 },
             )
-            evaluation_result = self.call_llm(
-                model,
+            evaluation_result = chat_completion(
                 messages=convert_messages,
-                llm_client=llm_client,
-                log_to_evaluation_data=False,
+                model=self.config.run_config.evaluation_model,
+                client=get_llm_client(self.config.run_config.evaluation_provider),
                 max_tokens=500,
                 temperature=0,
                 json_mode=True,
             )
 
             try:
-                evaluation_result = evaluation_result["answer"]
+                evaluation_result = evaluation_result["message"]["answer"]
                 if evaluation_result:
-                    score += crit["importance"]
-            except Exception as e:
-                logger.error(f"Error parsing evaluation result: {evaluation_result}\n {e}")
+                    score += importance
+            except Exception:
                 continue
 
-        self.evaluation_data.score = round(score, 2)
-
-    def task_as_string(self) -> str:
-        return super().task_as_string()
+        return score
