@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "evaluate-ai"
-version = "0.2.1"
+version = "0.3.0"
 description = ""
 authors = ["David Koleczek <45405824+DavidKoleczek@users.noreply.github.com>"]
 license = "MIT"
