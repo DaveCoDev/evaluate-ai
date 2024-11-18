@@ -1,7 +1,7 @@
 # Project specific
-tinydb.json
-external_evaluation.txt
 poetry.lock
+data/*.json
+data/temp/
 
 # Standard .gitignore from https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files

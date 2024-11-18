@@ -1,0 +1,10 @@
+run_config:
+  module_name: instruction_following
+  class_name: IFEvalEvaluation
+  models:
+    ollama:
+      - qwen2.5:14b
+      - llama3.1:8b-instruct-q8_0
+  # See https://github.com/google-research/google-research/blob/master/instruction_following_eval/
+  data_url: https://raw.githubusercontent.com/google-research/google-research/refs/heads/master/instruction_following_eval/data/input_data.jsonl
+  first_n_instances: 20

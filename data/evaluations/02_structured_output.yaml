@@ -2,10 +2,9 @@ run_config:
   module_name: structured_output
   class_name: EvaluationStructuredOutput
   models:
-    gh_models:
-      - gpt-4o-mini
-    azure_openai:
-      - gpt-4o-2024-05-13
+    ollama:
+      - qwen2.5:14b
+      - llama3.1:8b-instruct-q8_0
 
 evaluation_instances:
   - name: "Samba Classification"

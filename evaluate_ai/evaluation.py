@@ -137,17 +137,34 @@ class EvaluationOverallOutput(EvaluationBaseOutput):
 class Evaluation(ABC):
     @abstractmethod
     def __init__(self, config: EvaluationConfig) -> None:
-        pass
+        self.config = config
+        # Get a tuple of (provider, model) for each model in the run config
+        self.models: list[tuple[Provider, str]] = []
+        for provider, models in self.config.run_config.models.items():
+            for model in models:
+                self.models.append((provider, model))
 
     @abstractmethod
-    def num_instances(self, keys_to_skip: tuple) -> int:
-        """Used to estimate progress of evaluation runs.
+    def _get_output_class(self) -> type[EvaluationInstanceOutput]:
+        """Return the EvaluationInstanceOutput class used by this evaluation."""
+        pass
+
+    def num_instances(self, keys_to_skip: set) -> int:
+        """Calculate number of evaluation instances to run.
 
         Args:
-            keys_to_skip (tuple): A set of unique keys to skip when counting the number of instances.
-                Each key consists of: (EvaluationInstanceOutput class name, model, provider, evaluation_instance_name).
+            keys_to_skip: Set of already executed evaluation keys to skip
+
+        Returns:
+            Number of evaluation instances that will be executed
         """
-        pass
+        num = 0
+        for provider, model in self.models:
+            for e_instance in self.config.evaluation_instances:
+                key = (self._get_output_class().__name__, model, provider.value, e_instance.name)
+                if key not in keys_to_skip:
+                    num += 1
+        return num
 
     @abstractmethod
     def execute(self, progress: Progress, keys_to_skip: tuple) -> None:

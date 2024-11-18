@@ -1,0 +1,9 @@
+run_config:
+  module_name: mmlu_pro
+  class_name: MMLUProEvaluation
+  models:
+    ollama:
+      - qwen2.5:14b
+      - llama3.1:8b-instruct-q8_0
+  # See https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro/tree/main
+  data_url: https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro/resolve/main/data/validation-00000-of-00001.parquet

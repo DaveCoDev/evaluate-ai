@@ -124,21 +124,10 @@ class EvaluationInstanceOutputMeetsCriteria(EvaluationInstanceOutput):
 class EvaluationMeetsCriteria(Evaluation):
     def __init__(self, config: EvaluationConfigMeetsCriteria) -> None:
         self.config: EvaluationConfigMeetsCriteria = EvaluationConfigMeetsCriteria(**config)
+        super().__init__(self.config)
 
-        # Get a tuple of (provider, model) for each model in the run config
-        self.models: list[tuple[Provider, str]] = []
-        for provider, models in self.config.run_config.models.items():
-            for model in models:
-                self.models.append((provider, model))
-
-    def num_instances(self, keys_to_skip: set) -> int:
-        num = 0
-        for provider, model in self.models:
-            for e_instance in self.config.evaluation_instances:
-                key = (EvaluationInstanceOutputMeetsCriteria.__name__, model, provider.value, e_instance.name)
-                if key not in keys_to_skip:
-                    num += 1
-        return num
+    def _get_output_class(self) -> type[EvaluationInstanceOutput]:
+        return EvaluationInstanceOutputMeetsCriteria
 
     def execute(self, progress: Progress, keys_to_skip: set) -> None:
         for provider, model in self.models:

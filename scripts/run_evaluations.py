@@ -12,7 +12,7 @@ from evaluate_ai.tinydb_helpers.evaluation_data import get_executed_evaluations
 evaluations_folder = Path(__file__).parent.parent / "data" / "evaluations"
 
 
-if __name__ == "__main__":
+def main():
     # By default assume all .yaml files in the evaluations folder are to be used except config.yaml
     default_files = [str(file) for file in evaluations_folder.glob("*.yaml")]
     parser = argparse.ArgumentParser(description="Execute evaluations defined in specified .yaml files.")
@@ -20,7 +20,7 @@ if __name__ == "__main__":
         "-f",
         "--files",
         nargs="*",
-        default=default_files,  # ["./data/evaluations/03_meets_criteria.yaml"],
+        default=default_files,  # ["./data/evaluations/05_ifeval.yaml"],
         help="List of .yaml files to include in the evaluation. If not provided, all .yaml files in the evaluations folder will be used.",
     )
     parser.add_argument(
@@ -57,6 +57,10 @@ if __name__ == "__main__":
             sys.exit(1)
 
     with Progress() as progress:
-        task = progress.add_task("Evaluations Progress", total=evaluations_to_run)
+        progress.add_task("Evaluations Progress", total=evaluations_to_run)
         for evaluation_class in evaluation_classes:
             evaluation_class.execute(progress, keys_to_skip=executed_evaluations)
+
+
+if __name__ == "__main__":
+    main()

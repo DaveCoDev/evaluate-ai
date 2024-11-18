@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "evaluate-ai"
-version = "0.3.0"
+version = "0.4.0"
 description = ""
 authors = ["David Koleczek <45405824+DavidKoleczek@users.noreply.github.com>"]
 license = "MIT"
@@ -10,13 +10,19 @@ readme = "README.md"
 python = "^3.11"
 
 jsonschema = "^4.23"
+immutabledict = "^4.2"
+langdetect = "^1.0"
 loguru = "^0.7"
-not_again_ai = { extras = ["llm", "local_llm"], version="==0.12.1" }
+nltk = "^3.9"
+not_again_ai = { extras = ["llm", "local_llm"], version="==0.14.0" }
 pendulum = "^3.0"
 pydantic = "^2.9"
-pydantic_extra_types = "^2.9"
+pydantic_extra_types = "^2.10"
+pyarrow = "^18.0"
 pyyaml = "^6.0"
-rich = "^13.8"
+requests = "^2.32"
+rich = "^13.9"
+tenacity = "^9.0"
 tinydb = "^4.8"
 
 [tool.poetry.scripts]
