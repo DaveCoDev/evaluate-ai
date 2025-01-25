@@ -16,7 +16,7 @@ evaluate-ai uses [Poetry](https://python-poetry.org/docs/) for managing the Pyth
 This repo is best used by adding to and modifying it directly. As such, it is recommended to clone or create a fork of the repository. 
 After doing so, run the following command to create a Python environment, if it does not exist, and install its dependencies:
 ```bash
-poetry install
+poetry sync
 ```
 
 Alternatively, you can pip install from the remote with the following command, although this is not recommended.
@@ -52,8 +52,7 @@ The parameters for each evaluation are defined in a `EvaluationInstance` class u
 
 ### Configuring Models
 We currently use [not-again-ai](https://github.com/DaveCoDev/not-again-ai/tree/main) as the API to interact with multiple language models. However each evaluation can be changed to use any model service.
-Its [common `chat_completion`](https://github.com/DaveCoDev/not-again-ai/blob/main/notebooks/local_llm/01_common_chat_completion.ipynb) interface currently supports 
-[OpenAI](https://platform.openai.com/docs/models), Azure OpenAI, [Github Models](https://github.com/marketplace/models), and [Ollama](https://ollama.com/library?sort=popular) (local). 
+The clients for various LLM providers are defined in [constants.py](./evaluate_ai/constants.py). This is where you can configure things like API keys.
 Check [not-again-ai's documentation](https://github.com/DaveCoDev/not-again-ai?tab=readme-ov-file#installation) for the most up-to-date setup instructions. 
 
 

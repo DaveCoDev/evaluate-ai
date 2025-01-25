@@ -147,7 +147,6 @@ class Evaluation(ABC):
     @abstractmethod
     def _get_output_class(self) -> type[EvaluationInstanceOutput]:
         """Return the EvaluationInstanceOutput class used by this evaluation."""
-        pass
 
     def num_instances(self, keys_to_skip: set) -> int:
         """Calculate number of evaluation instances to run.
@@ -177,7 +176,6 @@ class Evaluation(ABC):
             keys_to_skip (tuple): A set of unique keys to skip when counting the number of instances.
                 Each key consists of: (EvaluationInstanceOutput class name, model, provider, evaluation_instance_name).
         """
-        pass
 
     @staticmethod
     def load_class(module_name: str, class_name: str, config: EvaluationConfig) -> "Evaluation":

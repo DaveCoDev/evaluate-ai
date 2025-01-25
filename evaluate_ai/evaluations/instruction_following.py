@@ -1,8 +1,7 @@
 """Based on https://github.com/google-research/google-research/blob/master/instruction_following_eval/"""
 
-from typing import Any
-
-from not_again_ai.local_llm.chat_completion import chat_completion
+from not_again_ai.llm.chat_completion import chat_completion
+from not_again_ai.llm.chat_completion.types import ChatCompletionRequest, ChatCompletionResponse, UserMessage
 from pydantic import Field
 from rich.progress import Progress
 
@@ -92,11 +91,11 @@ class IFEvalEvaluation(Evaluation):
                     response = self._get_response(
                         e_instance.prompt,
                         model,
-                        get_llm_client(provider),
+                        provider.value,
                     )
 
                     score = self._evaluate(
-                        response["message"],
+                        response.choices[0].message.content,
                         e_instance.instruction_id_list,
                         e_instance.kwargs,
                     )
@@ -105,25 +104,30 @@ class IFEvalEvaluation(Evaluation):
                         module_name=self.config.run_config.module_name,
                         class_name=EvaluationInstanceOutputIFEval.__name__,
                         name_model=model,
-                        provider=provider,
+                        provider=provider.value,
                         evaluation_instance=e_instance,
-                        message=response["message"],
+                        message=response.choices[0].message.content,
                         score=score,
-                        prompt_tokens_total=response["prompt_tokens"],
-                        completion_tokens_total=response["completion_tokens"],
-                        duration_sec_total=response["response_duration"],
+                        prompt_tokens_total=response.prompt_tokens,
+                        completion_tokens_total=response.completion_tokens,
+                        duration_sec_total=response.response_duration,
                     )
                     instance_output.save_to_db()
                     progress.advance(0)
 
-    def _get_response(self, prompt: str, model: str, llm_client: Any) -> dict[str, Any]:
+    def _get_response(self, prompt: str, model: str, provider: str) -> ChatCompletionResponse:
         messages = [
-            {
-                "role": "user",
-                "content": f"{prompt}",
-            },
+            UserMessage(
+                content=f"{prompt}",
+            ),
         ]
-        response = chat_completion(messages, model=model, client=llm_client, temperature=0.5, max_tokens=2000)
+        request = ChatCompletionRequest(
+            messages=messages,
+            model=model,
+            temperature=0.5,
+            max_completion_tokens=2000,
+        )
+        response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
 
     def _evaluate(

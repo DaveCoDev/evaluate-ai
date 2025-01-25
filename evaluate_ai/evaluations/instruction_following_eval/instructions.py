@@ -647,7 +647,7 @@ class RephraseChecker(Instruction):
         r"""Checks if the rephrasing follows the instruction.
 
         Args:
-          value: A string representing the response, which is expected to rephras
+          value: A string representing the response, which is expected to rephrase
             the string of `instruction_args`.
 
         Returns:
@@ -673,7 +673,7 @@ class RephraseChecker(Instruction):
 
 
 class KeywordChecker(Instruction):
-    """Check the exisitence of certain keywords."""
+    """Check the existence of certain keywords."""
 
     def build_description(self, *, keywords=None):
         """Build the instruction description.
@@ -1262,8 +1262,7 @@ class LetterFrequencyChecker(Instruction):
             self._comparison_relation = random.choice(_COMPARISON_RELATION)
         elif let_relation not in _COMPARISON_RELATION:
             raise ValueError(
-                "The supported relation for comparison must be in "
-                f"{_COMPARISON_RELATION}, but {let_relation} is given."
+                f"The supported relation for comparison must be in {_COMPARISON_RELATION}, but {let_relation} is given."
             )
         else:
             self._comparison_relation = let_relation
@@ -1329,8 +1328,7 @@ class LowercaseLettersEnglishChecker(Instruction):
     def build_description(self):
         """Build the instruction description."""
         self._description_pattern = (
-            "Your entire response should be in English, and in all lowercase"
-            " letters. No capital letters are allowed."
+            "Your entire response should be in English, and in all lowercase letters. No capital letters are allowed."
         )
         return self._description_pattern
 

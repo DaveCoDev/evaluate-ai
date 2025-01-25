@@ -1,8 +1,13 @@
 import re
-from typing import Any
 
-from not_again_ai.local_llm.chat_completion import chat_completion
-from not_again_ai.local_llm.prompts import chat_prompt
+from not_again_ai.llm.chat_completion import chat_completion
+from not_again_ai.llm.chat_completion.types import (
+    ChatCompletionRequest,
+    ChatCompletionResponse,
+    SystemMessage,
+    UserMessage,
+)
+from not_again_ai.llm.prompting.compile_messages import compile_messages
 import pendulum
 from pydantic import Field
 from rich.progress import Progress
@@ -11,16 +16,14 @@ from evaluate_ai.evaluation import Evaluation, EvaluationConfig, EvaluationInsta
 from evaluate_ai.utils import get_llm_client
 
 CONTAINS_PATTERN_MESSAGES = [
-    {
-        "role": "system",
-        "content": """{% if system_prompt %}{{ system_prompt }}{% else %}- You are a helpful assistant.
+    SystemMessage(
+        content="""{% if system_prompt %}{{ system_prompt }}{% else %}- You are a helpful assistant.
 - The current date is {{datetime}}.
 - You should answer questions truthfully and accurately.{% endif %}""",
-    },
-    {
-        "role": "user",
-        "content": """{{prompt}}""",
-    },
+    ),
+    UserMessage(
+        content="""{{prompt}}""",
+    ),
 ]
 
 
@@ -68,9 +71,9 @@ class EvaluationContainsPattern(Evaluation):
                         system_prompt=e_instance.system_prompt,
                         prompt=e_instance.prompt,
                         model=model,
-                        llm_client=get_llm_client(provider),
+                        provider=provider.value,
                     )
-                    message = response["message"]
+                    message = response.choices[0].message.content
                     score = self._evaluate(message, e_instance.pattern)
                     instance_output = EvaluationInstanceOutputContainsPattern(
                         module_name=self.config.run_config.module_name,
@@ -80,23 +83,28 @@ class EvaluationContainsPattern(Evaluation):
                         evaluation_instance=e_instance,
                         message=message,
                         score=score,
-                        prompt_tokens_total=response["prompt_tokens"],
-                        completion_tokens_total=response["completion_tokens"],
-                        duration_sec_total=response["response_duration"],
+                        prompt_tokens_total=response.prompt_tokens,
+                        completion_tokens_total=response.completion_tokens,
+                        duration_sec_total=response.response_duration,
                     )
                     instance_output.save_to_db()
                     progress.advance(0)
 
-    def _get_response(self, system_prompt: str, prompt: str, model: str, llm_client: Any) -> str:
-        messages = chat_prompt(
-            messages_unformatted=CONTAINS_PATTERN_MESSAGES,
+    def _get_response(self, system_prompt: str, prompt: str, model: str, provider: str) -> ChatCompletionResponse:
+        messages = compile_messages(
+            messages=CONTAINS_PATTERN_MESSAGES,
             variables={
                 "system_prompt": system_prompt,
                 "prompt": prompt,
                 "datetime": pendulum.now().strftime("%Y-%m-%d"),
             },
         )
-        response = chat_completion(messages, model=model, client=llm_client, temperature=0.7)
+        request = ChatCompletionRequest(
+            messages=messages,
+            model=model,
+            temperature=0.7,
+        )
+        response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
 
     def _evaluate(self, response: str, pattern: str) -> float:

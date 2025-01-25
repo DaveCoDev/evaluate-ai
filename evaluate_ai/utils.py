@@ -4,30 +4,26 @@ from pathlib import Path
 from typing import Any
 
 from loguru import logger
-from not_again_ai.llm.gh_models.azure_ai_client import azure_ai_client
-from not_again_ai.llm.openai_api.openai_client import openai_client
-from not_again_ai.local_llm.ollama.ollama_client import ollama_client
 import pyarrow.parquet as pq
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+from evaluate_ai.constants import AZURE_OPENAI_CLIENT, OLLAMA_CLIENT, OPENAI_CLIENT
 
 
 class Provider(Enum):
     AZURE_OPENAI = "azure_openai"
     OLLAMA = "ollama"
     OPENAI = "openai_api"
-    GH_MODELS = "gh_models"
 
 
 def get_llm_client(provider_name: str) -> Any:
-    if provider_name == Provider.OLLAMA:
-        llm_client = ollama_client()
-    elif provider_name == Provider.OPENAI:
-        llm_client = openai_client()
-    elif provider_name == Provider.AZURE_OPENAI:
-        llm_client = openai_client(api_type="azure_openai")
-    elif provider_name == Provider.GH_MODELS:
-        llm_client = azure_ai_client()
+    if provider_name == Provider.OLLAMA.value:
+        llm_client = OLLAMA_CLIENT
+    elif provider_name == Provider.OPENAI.value:
+        llm_client = OPENAI_CLIENT
+    elif provider_name == Provider.AZURE_OPENAI.value:
+        llm_client = AZURE_OPENAI_CLIENT
     else:
         raise ValueError(f"Provider {provider_name} is not supported.")
 
