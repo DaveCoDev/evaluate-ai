@@ -14,7 +14,7 @@ from evaluate_ai.evaluation import (
     EvaluationInstanceOutput,
     EvaluationRunConfig,
 )
-from evaluate_ai.utils import download_parquet, get_llm_client
+from evaluate_ai.utils import download_parquet, get_llm_client, strip_thinking
 
 
 class EvaluationInstanceMMLUPro(EvaluationInstance):
@@ -130,13 +130,15 @@ step and then output the answer in the format of "The answer is (X)" at the end.
             messages=messages,
             model=model,
             temperature=0.7,
-            max_completion_tokens=2000,
+            mmax_completion_tokens=4000,
+            context_window=8000,
         )
         response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
 
     def _evaluate(self, response: str, expected_value: str) -> float:
         """Extracts the answer from the model's response and compares it to the expected value."""
+        response = strip_thinking(response)
 
         def extract_answer(text):
             pattern = r"answer is \(?([A-J])\)?"

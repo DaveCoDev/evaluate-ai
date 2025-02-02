@@ -7,13 +7,13 @@ from not_again_ai.llm.chat_completion.types import (
     SystemMessage,
     UserMessage,
 )
-from not_again_ai.llm.prompting.compile_messages import compile_messages
+from not_again_ai.llm.prompting.compile_prompt import compile_messages
 import pendulum
 from pydantic import Field
 from rich.progress import Progress
 
 from evaluate_ai.evaluation import Evaluation, EvaluationConfig, EvaluationInstance, EvaluationInstanceOutput
-from evaluate_ai.utils import get_llm_client
+from evaluate_ai.utils import get_llm_client, strip_thinking
 
 CONTAINS_PATTERN_MESSAGES = [
     SystemMessage(
@@ -103,11 +103,14 @@ class EvaluationContainsPattern(Evaluation):
             messages=messages,
             model=model,
             temperature=0.7,
+            max_completion_tokens=3000,
+            context_window=8000,
         )
         response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
 
     def _evaluate(self, response: str, pattern: str) -> float:
+        response = strip_thinking(response)
         pattern = re.compile(pattern)
         success = bool(pattern.search(response))
         score = 100 if success else 0

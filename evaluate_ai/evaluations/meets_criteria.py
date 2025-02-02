@@ -5,7 +5,7 @@ from not_again_ai.llm.chat_completion.types import (
     SystemMessage,
     UserMessage,
 )
-from not_again_ai.llm.prompting.compile_messages import compile_messages
+from not_again_ai.llm.prompting.compile_prompt import compile_messages
 from pydantic import BaseModel, Field
 from rich.progress import Progress
 
@@ -16,7 +16,7 @@ from evaluate_ai.evaluation import (
     EvaluationInstanceOutput,
     EvaluationRunConfig,
 )
-from evaluate_ai.utils import Provider, get_llm_client
+from evaluate_ai.utils import Provider, get_llm_client, strip_thinking
 
 RESPONSE_MESSAGES = [
     SystemMessage(
@@ -165,12 +165,14 @@ class EvaluationMeetsCriteria(Evaluation):
             messages=messages,
             model=model,
             temperature=0.5,
-            max_completion_tokens=1500,
+            max_completion_tokens=4000,
+            context_window=8000,
         )
         response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
 
     def _evaluate(self, response_message: str, e_instance: EvaluationInstanceMeetsCriteria) -> float:
+        response_message = strip_thinking(response_message)
         provider = self.config.run_config.evaluation_provider.value
         model = self.config.run_config.evaluation_model
 
@@ -190,7 +192,8 @@ class EvaluationMeetsCriteria(Evaluation):
             request = ChatCompletionRequest(
                 messages=reasoning_messages,
                 model=model,
-                max_completion_tokens=1000,
+                max_completion_tokens=3000,
+                context_window=8000,
                 temperature=0.3,
             )
             reasoning = chat_completion(request, provider=provider, client=get_llm_client(provider))
@@ -205,7 +208,8 @@ class EvaluationMeetsCriteria(Evaluation):
             request = ChatCompletionRequest(
                 messages=convert_messages,
                 model=model,
-                max_completion_tokens=500,
+                max_completion_tokens=3000,
+                context_window=8000,
                 temperature=0,
                 json_mode=True,
             )

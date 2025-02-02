@@ -11,12 +11,12 @@ from not_again_ai.llm.chat_completion.types import (
     SystemMessage,
     UserMessage,
 )
-from not_again_ai.llm.prompting.compile_messages import compile_messages
+from not_again_ai.llm.prompting.compile_prompt import compile_messages
 from pydantic import Field
 from rich.progress import Progress
 
 from evaluate_ai.evaluation import Evaluation, EvaluationConfig, EvaluationInstance, EvaluationInstanceOutput
-from evaluate_ai.utils import get_llm_client
+from evaluate_ai.utils import get_llm_client, strip_thinking
 
 STRUCTURED_OUTPUT_MESSAGES = [
     SystemMessage(
@@ -70,7 +70,7 @@ class EvaluationStructuredOutput(Evaluation):
                         model=model,
                         provider=provider.value,
                     )
-                    message = response.choices[0].message.content
+                    message = response.choices[0].json_message if response.choices[0].json_message else ""
                     score, error = self._evaluate(message, e_instance.json_schema)
                     instance_output = EvaluationInstanceOutputStructuredOutput(
                         module_name=self.config.run_config.module_name,
@@ -99,13 +99,15 @@ class EvaluationStructuredOutput(Evaluation):
             messages=messages,
             model=model,
             temperature=0.5,
-            max_tokens=2000,
+            max_completion_tokens=3000,
+            context_window=8000,
             json_mode=True,
         )
         response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
 
     def _evaluate(self, response: dict, json_schema: dict) -> tuple[float, str | None]:
+        response = strip_thinking(response)
         try:
             validate(instance=response, schema=json_schema)
             return (100, None)

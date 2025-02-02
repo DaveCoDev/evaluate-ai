@@ -1,6 +1,7 @@
 from enum import Enum
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 from loguru import logger
@@ -86,3 +87,17 @@ def download_jsonl(url: str, file_name: str) -> list[dict]:
     temp_file = download_file(url, file_name)
     with Path.open(temp_file, "r", encoding="utf-8") as file:
         return [json.loads(line) for line in file]
+
+
+def strip_thinking(response: str) -> str:
+    """Remove text between <think> and </think> tags, including the tags themselves.
+    Usually there is unnecessary newlines after the closing </think> tag so we remove it if the think tag is present.
+
+    Args:
+        response: The input string that may contain thinking tags.
+
+    Returns:
+        The input string with all thinking tags and their contents removed.
+    """
+    result = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL)
+    return result.lstrip() if result != response else response

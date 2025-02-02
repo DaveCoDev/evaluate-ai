@@ -1,6 +1,6 @@
 [project]
 name = "evaluate-ai"
-version = "0.5.0"
+version = "0.5.1"
 description = ""
 authors = [
     { name = "David Koleczek", email = "45405824+DavidKoleczek@users.noreply.github.com" }
@@ -11,12 +11,13 @@ readme = "README.md"
 requires-python = ">=3.11, <3.13"
 
 dependencies = [
+    "jinja2>=3.1",
     "jsonschema>=4.23",
     "immutabledict>=4.2",
     "langdetect>=1.0",
     "loguru>=0.7",
     "nltk>=3.9",
-    "not_again_ai[data,llm,local_llm]>=0.15.0",
+    "not_again_ai[data,llm,local_llm]>=0.16.0",
     "pendulum>=3.0",
     "pydantic>=2.10",
     "pydantic_extra_types>=2.10",

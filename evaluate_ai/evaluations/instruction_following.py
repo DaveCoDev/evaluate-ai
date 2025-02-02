@@ -13,7 +13,7 @@ from evaluate_ai.evaluation import (
     EvaluationRunConfig,
 )
 from evaluate_ai.evaluations.instruction_following_eval import instructions_registry
-from evaluate_ai.utils import download_jsonl, get_llm_client
+from evaluate_ai.utils import download_jsonl, get_llm_client, strip_thinking
 
 
 class EvaluationInstanceIFEval(EvaluationInstance):
@@ -125,7 +125,8 @@ class IFEvalEvaluation(Evaluation):
             messages=messages,
             model=model,
             temperature=0.5,
-            max_completion_tokens=2000,
+            max_completion_tokens=4000,
+            context_window=8000,
         )
         response = chat_completion(request, provider=provider, client=get_llm_client(provider))
         return response
@@ -137,6 +138,7 @@ class IFEvalEvaluation(Evaluation):
         kwargs: list[dict[str, str | int | None | list[str]]],
     ) -> float:
         """Tests response to see if instructions are followed."""
+        response = strip_thinking(response)
         is_following_list = []
         for index, instruction_id in enumerate(instruction_id_list):
             instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
